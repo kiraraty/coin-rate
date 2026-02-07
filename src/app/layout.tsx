@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "资金费率看板",
-  description: "加密货币永续合约资金费率监控",
+  title: "Coin Rate - 资金费率 & 经济日历",
+  description: "加密货币永续合约资金费率监控 & 美国经济日历",
 };
 
 export default function RootLayout({

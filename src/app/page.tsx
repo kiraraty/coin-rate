@@ -1,100 +1,43 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { FundingRateResponse } from '@/lib/types';
-import StatsBar from '@/components/StatsBar';
-import FilterBanner from '@/components/FilterBanner';
-import CoinCard from '@/components/CoinCard';
-import RefreshButton from '@/components/RefreshButton';
+import { useState } from 'react';
+import FundingRatePanel from '@/components/FundingRatePanel';
+import EconomicCalendar from '@/components/EconomicCalendar';
+
+type Tab = 'funding' | 'calendar';
 
 export default function Home() {
-  const [data, setData] = useState<FundingRateResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = useCallback(async (forceRefresh = false) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const url = forceRefresh ? '/api/funding-rates?refresh=1' : '/api/funding-rates';
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json: FundingRateResponse = await res.json();
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '请求失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 60_000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  const [tab, setTab] = useState<Tab>('funding');
 
   return (
     <div className="mx-auto min-h-screen max-w-lg px-4 py-6">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-800">资金费率看板</h1>
-        <RefreshButton onClick={() => fetchData(true)} loading={loading} />
+      {/* Tab bar */}
+      <div className="mb-4 flex gap-1 rounded-xl bg-gray-100 p-1">
+        <button
+          onClick={() => setTab('funding')}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+            tab === 'funding'
+              ? 'bg-white text-gray-800 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          资金费率
+        </button>
+        <button
+          onClick={() => setTab('calendar')}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+            tab === 'calendar'
+              ? 'bg-white text-gray-800 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          经济日历
+        </button>
       </div>
 
-      {/* Stats */}
-      {data && (
-        <div className="mb-4">
-          <StatsBar
-            totalCoins={data.meta.totalCoins}
-            totalExchanges={data.meta.totalExchanges}
-            lastUpdated={data.meta.lastUpdated}
-          />
-        </div>
-      )}
-
-      {/* Filter Banner */}
-      <div className="mb-4">
-        <FilterBanner />
-      </div>
-
-      {/* Error display */}
-      {error && (
-        <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-600">
-          加载失败: {error}
-        </div>
-      )}
-
-      {/* API errors (partial failures) */}
-      {data?.meta.errors && data.meta.errors.length > 0 && (
-        <div className="mb-4 rounded-xl bg-yellow-50 p-3 text-xs text-yellow-700">
-          部分交易所获取失败: {data.meta.errors.join(', ')}
-        </div>
-      )}
-
-      {/* Loading skeleton */}
-      {loading && !data && (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-white" />
-          ))}
-        </div>
-      )}
-
-      {/* Coin list */}
-      {data && (
-        <div className="space-y-4">
-          {data.coins.length === 0 ? (
-            <div className="rounded-xl bg-white p-8 text-center text-gray-400">
-              当前没有符合条件的币种
-            </div>
-          ) : (
-            data.coins.map((coin, i) => (
-              <CoinCard key={coin.symbol} coin={coin} rank={i + 1} />
-            ))
-          )}
-        </div>
-      )}
+      {/* Tab content */}
+      {tab === 'funding' && <FundingRatePanel />}
+      {tab === 'calendar' && <EconomicCalendar />}
     </div>
   );
 }

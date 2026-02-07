@@ -23,3 +23,4 @@ class MemoryCache<T> {
 }
 
 export const fundingRateCache = new MemoryCache<unknown>(60_000);
+export const economicCalendarCache = new MemoryCache<unknown>(300_000);

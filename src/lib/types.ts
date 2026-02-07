@@ -26,3 +26,18 @@ export interface FundingRateResponse {
     errors: string[];
   };
 }
+
+// Economic Calendar types
+export interface EconomicEvent {
+  title: string;
+  country: string;
+  date: string;
+  impact: 'High' | 'Medium' | 'Low' | 'Holiday' | string;
+  forecast: string;
+  previous: string;
+}
+
+export interface EconomicCalendarResponse {
+  events: EconomicEvent[];
+  lastUpdated: string;
+}
