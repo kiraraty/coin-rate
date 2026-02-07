@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "ccxt": "^4.5.36",
     "next": "16.1.6",
+    "protobufjs": "^8.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
