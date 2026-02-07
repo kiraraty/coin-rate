@@ -76,7 +76,31 @@ export default function FundingRatePanel() {
       {loading && !data && (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-white" />
+            <div key={i} className="animate-pulse rounded-xl bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-gray-200" />
+                  <div>
+                    <div className="h-4 w-16 rounded bg-gray-200" />
+                    <div className="mt-1.5 h-3 w-24 rounded bg-gray-100" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="h-5 w-20 rounded bg-gray-200" />
+                  <div className="mt-1.5 h-3 w-14 rounded bg-gray-100" />
+                </div>
+              </div>
+              <div className="mt-3 border-t border-gray-50 pt-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-3 w-28 rounded bg-gray-100" />
+                  <div className="h-3 w-16 rounded bg-gray-100" />
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="h-3 w-24 rounded bg-gray-100" />
+                  <div className="h-3 w-20 rounded bg-gray-100" />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}
