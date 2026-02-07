@@ -79,47 +79,45 @@ async function checkCalendarAlerts(now: Date): Promise<string | null> {
   }
 }
 
-/** Build the full hourly funding rate + calendar summary */
-async function buildHourlySummary(): Promise<{ title: string; desp: string }> {
-  const [fundingResult, calendarResult] = await Promise.allSettled([
-    fetchAllExchanges(),
-    fetch(CALENDAR_URL).then((r) => r.json() as Promise<EconomicEvent[]>),
-  ]);
-
-  let desp = '';
-
-  // Funding rate section
-  desp += '## 资金费率\n\n';
-  if (fundingResult.status === 'fulfilled') {
-    const { rates, errors } = fundingResult.value;
+/** Build funding rate push: top 3 coins with all exchange details */
+async function buildFundingRatePush(): Promise<{ title: string; desp: string } | null> {
+  try {
+    const { rates, errors } = await fetchAllExchanges();
     const coins = aggregateRates(rates);
 
-    if (coins.length === 0) {
-      desp += '当前无高费率币种结算\n\n';
-    } else {
-      for (const coin of coins.slice(0, 15)) {
-        const topRate = coin.exchanges[0];
-        const sign = topRate.fundingRate > 0 ? '+' : '';
-        const pct = (topRate.fundingRate * 100).toFixed(4);
-        desp += `**${coin.symbol}** ${sign}${pct}% (${topRate.exchange})`;
-        if (coin.exchangeCount > 1) {
-          desp += ` 等${coin.exchangeCount}所`;
-        }
-        desp += '\n\n';
+    if (coins.length === 0) return null;
+
+    let desp = '';
+    for (const coin of coins.slice(0, 3)) {
+      const sign = coin.exchanges[0].fundingRate > 0 ? '+' : '';
+      const pct = (coin.exchanges[0].fundingRate * 100).toFixed(4);
+      desp += `### ${coin.symbol} ${sign}${pct}%\n\n`;
+      for (const ex of coin.exchanges) {
+        const s = ex.fundingRate > 0 ? '+' : '';
+        const p = (ex.fundingRate * 100).toFixed(4);
+        desp += `- **${ex.exchange}** ${s}${p}%\n`;
       }
+      desp += '\n';
     }
 
     if (errors.length > 0) {
       desp += `> 部分失败: ${errors.join(', ')}\n\n`;
     }
-  } else {
-    desp += `获取失败: ${fundingResult.reason?.message ?? 'Unknown'}\n\n`;
-  }
 
-  // Economic calendar section
-  desp += '---\n\n## 今日经济日历\n\n';
-  if (calendarResult.status === 'fulfilled') {
-    const allEvents = calendarResult.value;
+    const hour = new Date().toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai',
+    });
+    return { title: `📊 ${hour} 资金费率 Top3`, desp };
+  } catch {
+    return null;
+  }
+}
+
+/** Build economic calendar push: today's High/Medium USD events */
+async function buildCalendarPush(): Promise<{ title: string; desp: string } | null> {
+  try {
+    const res = await fetch(CALENDAR_URL);
+    const allEvents: EconomicEvent[] = await res.json();
     const now = new Date();
     const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
 
@@ -130,30 +128,27 @@ async function buildHourlySummary(): Promise<{ title: string; desp: string }> {
       return eventDate === todayStr;
     });
 
-    if (todayEvents.length === 0) {
-      desp += '今日无重要经济事件\n\n';
-    } else {
-      for (const e of todayEvents) {
-        const time = new Date(e.date).toLocaleTimeString('zh-CN', {
-          hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai',
-        });
-        const impact = e.impact === 'High' ? '🔴' : '🟡';
-        desp += `${impact} **${time}** ${e.title}`;
-        if (e.forecast) desp += ` (预期: ${e.forecast})`;
-        if (e.previous) desp += ` (前值: ${e.previous})`;
-        desp += '\n\n';
-      }
+    if (todayEvents.length === 0) return null;
+
+    let desp = '';
+    for (const e of todayEvents) {
+      const time = new Date(e.date).toLocaleTimeString('zh-CN', {
+        hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai',
+      });
+      const impact = e.impact === 'High' ? '🔴' : '🟡';
+      desp += `${impact} **${time}** ${e.title}`;
+      if (e.forecast) desp += ` (预期: ${e.forecast})`;
+      if (e.previous) desp += ` (前值: ${e.previous})`;
+      desp += '\n\n';
     }
-  } else {
-    desp += '经济日历获取失败\n\n';
+
+    const hour = now.toLocaleTimeString('zh-CN', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai',
+    });
+    return { title: `📅 ${hour} 今日经济日历`, desp };
+  } catch {
+    return null;
   }
-
-  const hour = new Date().toLocaleTimeString('zh-CN', {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai',
-  });
-  const title = `📊 ${hour} 资金费率 & 经济日历`;
-
-  return { title, desp };
 }
 
 export async function GET(request: Request) {
@@ -183,11 +178,22 @@ export async function GET(request: Request) {
       results.push(`calendar_alert: ${alertResult}`);
     }
 
-    // 2) Full hourly summary only at minute 55 (±2 min tolerance)
+    // 2) Hourly pushes only at minute 55 (±2 min tolerance)
     if (bjMinute >= 53 && bjMinute <= 57) {
-      const { title, desp } = await buildHourlySummary();
-      const summaryResult = await scSend(title, desp);
-      results.push(`hourly_summary: ${summaryResult}`);
+      // Fetch funding rates and calendar in parallel, send as separate messages
+      const [fundingPush, calendarPush] = await Promise.all([
+        buildFundingRatePush(),
+        buildCalendarPush(),
+      ]);
+
+      if (fundingPush) {
+        const r = await scSend(fundingPush.title, fundingPush.desp);
+        results.push(`funding: ${r}`);
+      }
+      if (calendarPush) {
+        const r = await scSend(calendarPush.title, calendarPush.desp);
+        results.push(`calendar: ${r}`);
+      }
     }
 
     if (results.length === 0) {
