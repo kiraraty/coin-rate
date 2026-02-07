@@ -44,7 +44,7 @@ async function checkCalendarAlerts(now: Date): Promise<string | null> {
 
     for (const e of allEvents) {
       if (e.country !== 'USD') continue;
-      if (e.impact !== 'High' && e.impact !== 'Medium') continue;
+      if (e.impact !== 'High') continue;
       const eventDate = new Date(e.date).toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
       if (eventDate !== todayStr) continue;
 
@@ -180,19 +180,20 @@ export async function GET(request: Request) {
 
     // 2) Hourly pushes only at minute 55 (±2 min tolerance)
     if (bjMinute >= 53 && bjMinute <= 57) {
-      // Fetch funding rates and calendar in parallel, send as separate messages
-      const [fundingPush, calendarPush] = await Promise.all([
-        buildFundingRatePush(),
-        buildCalendarPush(),
-      ]);
-
+      // Funding rate: every hour
+      const fundingPush = await buildFundingRatePush();
       if (fundingPush) {
         const r = await scSend(fundingPush.title, fundingPush.desp);
         results.push(`funding: ${r}`);
       }
-      if (calendarPush) {
-        const r = await scSend(calendarPush.title, calendarPush.desp);
-        results.push(`calendar: ${r}`);
+
+      // Calendar: only at 20:00 and 22:00 (bjHour 19 and 21 when :55 triggers)
+      if (bjHour === 19 || bjHour === 21) {
+        const calendarPush = await buildCalendarPush();
+        if (calendarPush) {
+          const r = await scSend(calendarPush.title, calendarPush.desp);
+          results.push(`calendar: ${r}`);
+        }
       }
     }
 
