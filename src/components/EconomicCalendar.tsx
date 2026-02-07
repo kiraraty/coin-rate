@@ -3,6 +3,93 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { EconomicEvent, EconomicCalendarResponse } from '@/lib/types';
 
+// Common US economic event translations
+const EVENT_TRANSLATIONS: Record<string, string> = {
+  // Employment
+  'Non-Farm Employment Change': '非农就业人数变化',
+  'ADP Non-Farm Employment Change': 'ADP非农就业人数变化',
+  'Unemployment Claims': '初请失业金人数',
+  'Unemployment Rate': '失业率',
+  'Average Hourly Earnings m/m': '平均每小时工资月率',
+  'Average Hourly Earnings y/y': '平均每小时工资年率',
+  'JOLTS Job Openings': 'JOLTS职位空缺数',
+  'Challenger Job Cuts y/y': '挑战者企业裁员年率',
+  // Inflation & Prices
+  'CPI m/m': 'CPI月率',
+  'CPI y/y': 'CPI年率',
+  'Core CPI m/m': '核心CPI月率',
+  'Core CPI y/y': '核心CPI年率',
+  'PPI m/m': 'PPI月率',
+  'PPI y/y': 'PPI年率',
+  'Core PPI m/m': '核心PPI月率',
+  'Core PPI y/y': '核心PPI年率',
+  'PCE Price Index m/m': 'PCE物价指数月率',
+  'Core PCE Price Index m/m': '核心PCE物价指数月率',
+  'Core PCE Price Index y/y': '核心PCE物价指数年率',
+  'ISM Manufacturing Prices': 'ISM制造业物价指数',
+  // GDP
+  'Advance GDP q/q': 'GDP初值季率',
+  'Prelim GDP q/q': 'GDP修正值季率',
+  'Final GDP q/q': 'GDP终值季率',
+  'Advance GDP Price Index q/q': 'GDP物价指数初值季率',
+  // PMI & Manufacturing
+  'ISM Manufacturing PMI': 'ISM制造业PMI',
+  'ISM Services PMI': 'ISM非制造业PMI',
+  'Final Manufacturing PMI': '制造业PMI终值',
+  'Final Services PMI': '服务业PMI终值',
+  'Flash Manufacturing PMI': '制造业PMI初值',
+  'Flash Services PMI': '服务业PMI初值',
+  // Consumer
+  'Retail Sales m/m': '零售销售月率',
+  'Core Retail Sales m/m': '核心零售销售月率',
+  'Consumer Confidence': '消费者信心指数',
+  'CB Consumer Confidence': 'CB消费者信心指数',
+  'Prelim UoM Consumer Sentiment': '密歇根消费者信心指数初值',
+  'Revised UoM Consumer Sentiment': '密歇根消费者信心指数修正值',
+  'Prelim UoM Inflation Expectations': '密歇根通胀预期初值',
+  'Revised UoM Inflation Expectations': '密歇根通胀预期修正值',
+  'Consumer Credit m/m': '消费者信贷月率',
+  // Housing
+  'Building Permits': '营建许可',
+  'Housing Starts': '新屋开工',
+  'Existing Home Sales': '成屋销售',
+  'New Home Sales': '新屋销售',
+  'Pending Home Sales m/m': '成屋签约销售月率',
+  // Trade & Industry
+  'Trade Balance': '贸易帐',
+  'Industrial Production m/m': '工业产出月率',
+  'Capacity Utilization Rate': '产能利用率',
+  'Durable Goods Orders m/m': '耐用品订单月率',
+  'Core Durable Goods Orders m/m': '核心耐用品订单月率',
+  'Factory Orders m/m': '工厂订单月率',
+  // Fed & Interest Rates
+  'Federal Funds Rate': '联邦基金利率',
+  'FOMC Statement': 'FOMC声明',
+  'FOMC Meeting Minutes': 'FOMC会议纪要',
+  'FOMC Press Conference': 'FOMC新闻发布会',
+  // Energy
+  'Crude Oil Inventories': '原油库存',
+  'Natural Gas Storage': '天然气库存',
+  'API Weekly Statistical Bulletin': 'API原油库存周报',
+  // Other
+  'Loan Officer Survey': '贷款官员调查',
+  'Wards Total Vehicle Sales': '汽车总销量',
+  'RCM/TIPP Economic Optimism': 'RCM/TIPP经济乐观指数',
+  'President Trump Speaks': '特朗普总统讲话',
+};
+
+// Match FOMC/Fed member speeches
+function translateTitle(title: string): string | null {
+  if (EVENT_TRANSLATIONS[title]) return EVENT_TRANSLATIONS[title];
+  // FOMC Member XXX Speaks
+  const fomcMatch = title.match(/^FOMC Member (\w+) Speaks$/);
+  if (fomcMatch) return `FOMC委员${fomcMatch[1]}讲话`;
+  // Fed Chair XXX Speaks
+  const fedChairMatch = title.match(/^Fed Chair (\w+) Speaks$/);
+  if (fedChairMatch) return `美联储主席${fedChairMatch[1]}讲话`;
+  return null;
+}
+
 const IMPACT_STYLES: Record<string, string> = {
   High: 'bg-red-100 text-red-700',
   Medium: 'bg-yellow-100 text-yellow-700',
@@ -139,6 +226,7 @@ function EventRow({ event }: { event: EconomicEvent }) {
   const isPast = new Date(event.date).getTime() < Date.now();
   const impactStyle = IMPACT_STYLES[event.impact] || IMPACT_STYLES.Low;
   const impactLabel = IMPACT_LABELS[event.impact] || event.impact;
+  const zhTitle = translateTitle(event.title);
 
   return (
     <div className={`flex items-start gap-3 px-4 py-3 ${isPast ? 'opacity-50' : ''}`}>
@@ -152,7 +240,12 @@ function EventRow({ event }: { event: EconomicEvent }) {
       </span>
       {/* Content */}
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-gray-800">{event.title}</div>
+        <div className="text-sm font-medium text-gray-800">
+          {zhTitle ?? event.title}
+        </div>
+        {zhTitle && (
+          <div className="mt-0.5 text-xs text-gray-400">{event.title}</div>
+        )}
         {(event.forecast || event.previous) && (
           <div className="mt-1 flex gap-3 text-xs text-gray-400">
             {event.forecast && <span>预期: {event.forecast}</span>}
