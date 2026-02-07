@@ -178,8 +178,8 @@ export async function GET(request: Request) {
       results.push(`calendar_alert: ${alertResult}`);
     }
 
-    // 2) Hourly pushes only at minute 55 (±2 min tolerance)
-    if (bjMinute >= 53 && bjMinute <= 57) {
+    // 2) Hourly pushes only around minute 55 (wide tolerance for Vercel cron delay)
+    if (bjMinute >= 50 || bjMinute <= 2) {
       // Funding rate: every hour
       const fundingPush = await buildFundingRatePush();
       if (fundingPush) {
