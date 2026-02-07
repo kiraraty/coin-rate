@@ -106,19 +106,20 @@ const IMPACT_LABELS: Record<string, string> = {
 
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Shanghai' });
 }
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
-  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-  return `${d.getMonth() + 1}/${d.getDate()} ${weekdays[d.getDay()]}`;
+  // Use Asia/Shanghai to get correct weekday and date
+  const formatter = new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', weekday: 'short', timeZone: 'Asia/Shanghai' });
+  return formatter.format(d);
 }
 
 function groupByDate(events: EconomicEvent[]): Map<string, EconomicEvent[]> {
   const groups = new Map<string, EconomicEvent[]>();
   for (const event of events) {
-    const dateKey = new Date(event.date).toLocaleDateString('zh-CN');
+    const dateKey = new Date(event.date).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
     const existing = groups.get(dateKey) || [];
     existing.push(event);
     groups.set(dateKey, existing);
