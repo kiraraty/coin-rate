@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchAllExchanges, aggregateRates, buildResponse } from '@/lib/fetcher';
-import { recordFundingRateSnapshot } from '@/lib/funding-history';
+import { createAndStoreFundingRateSnapshot } from '@/lib/funding-history';
 import type { EconomicEvent } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -36,22 +35,13 @@ function getBjTime() {
 /** Build funding rate push: top 3 coins with all exchange details */
 async function buildFundingRatePush(): Promise<{ title: string; desp: string } | null> {
   try {
-    console.log('[buildFundingRatePush] Fetching exchanges...');
-    const { rates, errors } = await fetchAllExchanges();
-    console.log(`[buildFundingRatePush] Got ${rates.length} rates, ${errors.length} errors`);
-    const coins = aggregateRates(rates);
-    console.log(`[buildFundingRatePush] Aggregated to ${coins.length} coins`);
+    console.log('[buildFundingRatePush] Fetching and storing snapshot...');
+    const snapshot = await createAndStoreFundingRateSnapshot();
+    if (!snapshot) return null;
 
-    if (coins.length === 0) return null;
-
-    const response = buildResponse(coins, errors);
-
-    try {
-      await recordFundingRateSnapshot(response);
-      console.log('[buildFundingRatePush] History snapshot saved');
-    } catch (saveError) {
-      console.warn('[buildFundingRatePush] Failed to save history snapshot:', saveError);
-    }
+    const { response } = snapshot;
+    const coins = response.coins;
+    console.log(`[buildFundingRatePush] Snapshot saved with ${coins.length} coins`);
 
     let desp = '';
     for (const coin of coins.slice(0, 3)) {
@@ -66,8 +56,8 @@ async function buildFundingRatePush(): Promise<{ title: string; desp: string } |
       desp += '\n';
     }
 
-    if (errors.length > 0) {
-      desp += `> 部分失败: ${errors.join(', ')}\n\n`;
+    if (response.meta.errors.length > 0) {
+      desp += `> 部分失败: ${response.meta.errors.join(', ')}\n\n`;
     }
 
     const hour = new Date().toLocaleTimeString('zh-CN', {

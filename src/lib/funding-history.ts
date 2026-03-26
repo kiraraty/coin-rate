@@ -1,8 +1,10 @@
 import { list, put } from '@vercel/blob';
+import { aggregateRates, buildResponse, fetchAllExchanges } from './fetcher';
 import type {
   FundingRateHistoryRecord,
   FundingRateHistoryResponse,
   FundingRateResponse,
+  CoinGroup,
 } from './types';
 
 const HISTORY_PREFIX = 'funding-history/';
@@ -71,6 +73,28 @@ export async function recordFundingRateSnapshot(response: FundingRateResponse) {
   });
 
   return { capturedAt, pathname };
+}
+
+export async function createAndStoreFundingRateSnapshot(): Promise<{
+  response: FundingRateResponse;
+  coins: CoinGroup[];
+  capturedAt: string | null;
+} | null> {
+  const { rates, errors } = await fetchAllExchanges();
+  const coins = aggregateRates(rates);
+
+  if (coins.length === 0) {
+    return null;
+  }
+
+  const response = buildResponse(coins, errors);
+  const saved = await recordFundingRateSnapshot(response);
+
+  return {
+    response,
+    coins,
+    capturedAt: saved.capturedAt,
+  };
 }
 
 export async function fetchFundingRateHistory(
