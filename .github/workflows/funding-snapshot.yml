@@ -2,7 +2,7 @@ name: Funding Snapshot
 
 on:
   schedule:
-    - cron: '59 * * * *'
+    - cron: '58 * * * *'
   workflow_dispatch:
 
 jobs:
