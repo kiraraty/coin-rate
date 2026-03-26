@@ -8,9 +8,32 @@ on:
 jobs:
   trigger-snapshot:
     runs-on: ubuntu-latest
+    env:
+      PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Trigger snapshot API
         run: |
+          if [ -z "$PRODUCTION_URL" ]; then
+            echo "PRODUCTION_URL is missing"
+            exit 1
+          fi
+
+          if [ -z "$CRON_SECRET" ]; then
+            echo "CRON_SECRET is missing"
+            exit 1
+          fi
+
+          case "$PRODUCTION_URL" in
+            http://*|https://*) ;;
+            *)
+              echo "PRODUCTION_URL must start with http:// or https://"
+              exit 1
+              ;;
+          esac
+
+          BASE_URL="${PRODUCTION_URL%/}"
+
           curl -fsS \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.PRODUCTION_URL }}/api/funding-snapshot"
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$BASE_URL/api/funding-snapshot"
