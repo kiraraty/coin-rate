@@ -255,7 +255,7 @@ export default function FundingHistoryList() {
                               </div>
                             </div>
                             <div className="text-right text-xs text-gray-500">
-                              <div>{record.response.meta.lastUpdated}</div>
+                              <div>北京时间 {formatShanghaiDateTime(record.response.meta.lastUpdated)}</div>
                               <div>{keyCoinCount} 个币种</div>
                             </div>
                           </div>
