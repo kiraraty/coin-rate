@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/blob": "^2.3.1",
     "ccxt": "^4.5.36",
     "next": "16.1.6",
     "protobufjs": "^8.0.0",

@@ -27,6 +27,16 @@ export interface FundingRateResponse {
   };
 }
 
+export interface FundingRateHistoryRecord {
+  capturedAt: string;
+  response: FundingRateResponse;
+}
+
+export interface FundingRateHistoryResponse {
+  records: FundingRateHistoryRecord[];
+  lastUpdated: string;
+}
+
 // Economic Calendar types
 export interface EconomicEvent {
   title: string;

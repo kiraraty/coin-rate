@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { fetchAllExchanges, aggregateRates } from '@/lib/fetcher';
+import { fetchAllExchanges, aggregateRates, buildResponse } from '@/lib/fetcher';
+import { recordFundingRateSnapshot } from '@/lib/funding-history';
 import type { EconomicEvent } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -42,6 +43,15 @@ async function buildFundingRatePush(): Promise<{ title: string; desp: string } |
     console.log(`[buildFundingRatePush] Aggregated to ${coins.length} coins`);
 
     if (coins.length === 0) return null;
+
+    const response = buildResponse(coins, errors);
+
+    try {
+      await recordFundingRateSnapshot(response);
+      console.log('[buildFundingRatePush] History snapshot saved');
+    } catch (saveError) {
+      console.warn('[buildFundingRatePush] Failed to save history snapshot:', saveError);
+    }
 
     let desp = '';
     for (const coin of coins.slice(0, 3)) {

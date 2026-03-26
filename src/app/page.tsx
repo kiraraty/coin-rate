@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import FundingRatePanel from '@/components/FundingRatePanel';
+import FundingHistoryList from '@/components/FundingHistoryList';
 import EconomicCalendar from '@/components/EconomicCalendar';
 
-type Tab = 'funding' | 'calendar';
+type Tab = 'funding' | 'history' | 'calendar';
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('funding');
@@ -24,6 +25,16 @@ export default function Home() {
           资金费率
         </button>
         <button
+          onClick={() => setTab('history')}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+            tab === 'history'
+              ? 'bg-white text-gray-800 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          历史
+        </button>
+        <button
           onClick={() => setTab('calendar')}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
             tab === 'calendar'
@@ -37,6 +48,7 @@ export default function Home() {
 
       {/* Tab content */}
       {tab === 'funding' && <FundingRatePanel />}
+      {tab === 'history' && <FundingHistoryList />}
       {tab === 'calendar' && <EconomicCalendar />}
     </div>
   );
