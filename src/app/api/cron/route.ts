@@ -127,8 +127,10 @@ export async function GET(request: Request) {
   }
 
   // Check Beijing time window: 6:00 - 2:00 (next day)
-  const { now, bjHour } = getBjTime();
-  console.log(`[cron] Beijing time: ${bjHour}:55 (approx), UTC: ${now.toISOString()}`);
+  const { now, bjHour, bjMinute } = getBjTime();
+  console.log(
+    `[cron] Beijing time: ${bjHour}:${String(bjMinute).padStart(2, '0')}, UTC: ${now.toISOString()}`,
+  );
 
   if (bjHour >= 2 && bjHour < 6) {
     console.log('[cron] Skipped: outside 06:00-02:00 window');
@@ -149,7 +151,7 @@ export async function GET(request: Request) {
       console.log('[cron] No funding rate data to push');
     }
 
-    // 2) Calendar: only at 20:00 and 22:00 (bjHour 19 and 21 when :55 triggers)
+    // 2) Calendar: only once during the 19 and 21 o'clock hour (near 20:00 and 22:00 Beijing time)
     console.log(`[cron] Calendar push check: bjHour=${bjHour}, eligible=${bjHour === 19 || bjHour === 21}`);
     if (bjHour === 19 || bjHour === 21) {
       const calendarPush = await buildCalendarPush();

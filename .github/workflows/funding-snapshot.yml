@@ -1,8 +1,6 @@
 name: Funding Snapshot
 
 on:
-  schedule:
-    - cron: '58 * * * *'
   workflow_dispatch:
 
 jobs:
